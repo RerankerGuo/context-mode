@@ -108,6 +108,31 @@ describe("isPathInsideProject — issue #852 containment", () => {
     expect(v.allowed).toBe(false);
     expect(v.reason).toBe("outside");
   });
+
+  // ── caseInsensitive parameter (Windows/macOS default) ──
+  // isPathInsideProject's third argument defaults to true on win32/darwin
+  // and false elsewhere. The function is pure string math (no fs lookup
+  // beyond realpath on the lexical-resolved form), so the same input can
+  // be tested under both modes regardless of the host filesystem.
+  it("caseInsensitive: true ALLOWS a same-root path spelled with different case (Windows/macOS)", () => {
+    // On a case-insensitive filesystem the same directory can be spelled
+    // multiple ways; the function must accept any case variant as inside.
+    const upperCase = project.toUpperCase();
+    // Sanity: the case-different spelling must actually be a different
+    // string — otherwise the test is trivially true on every platform.
+    expect(upperCase).not.toBe(project);
+    expect(isPathInsideProject(upperCase, project, true)).toBe(true);
+  });
+
+  it("caseInsensitive: false BLOCKS a same-root path spelled with different case (Linux default)", () => {
+    // The Linux default must treat the case-different spelling as a
+    // different directory and refuse it. This pins the contract that
+    // `caseInsensitive` is the only thing that distinguishes Windows/macOS
+    // from Linux for same-root equality — and that the default is honored.
+    const upperCase = project.toUpperCase();
+    expect(upperCase).not.toBe(project);
+    expect(isPathInsideProject(upperCase, project, false)).toBe(false);
+  });
 });
 
 // ─────────────────────────────────────────────────────────
